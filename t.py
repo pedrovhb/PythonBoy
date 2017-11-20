@@ -1,10 +1,9 @@
 from collections import namedtuple
 
-Registers = namedtuple('Registers', 'a b c d e h l sp pc f')
-r = Registers(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+Registers = namedtuple('Registers', 'a b c d e h l sp pc f bc de hl')
+r = Registers(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
 
-
-a, b, c, d, e, h, l, sp, pc, f = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+a, b, c, d, e, h, l, sp, pc, f, bc, de, hl = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
 reg = bytearray([0xca, 0xfe, 0xba, 0xbe, 0xca, 0xfe, 0xba, 0xbe, 0xff, 0x00])
 print(reg[f])
 
@@ -17,8 +16,9 @@ nintendo_logo = bytearray([
 with open('LawnBoy.gbc', 'rb') as f:
     print(f.read().find(nintendo_logo))
 
+print(0x103)
 with open('LawnBoy.gbc', 'rb') as f:
-    print(f.read()[0x131])
+    print(f.read()[0x104:0x134] == nintendo_logo)
 
 #class bytearrayc(bytearray):
 
