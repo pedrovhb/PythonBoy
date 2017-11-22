@@ -19,12 +19,15 @@ class CPU:
         # Set Stack Pointer to 0xFFFE
         self.registers[sp] = hex_slice(0xFFFE)
 
-    # 8-bit load instructions, n to reg
+    ######################################################################################
+    # 8-bit load instructions
+
+    # n to reg
     def ld_r_n(self, opcode, n):  # 8 cycles
         register_opcode = {0x06: b, 0x0e: c, 0x16: d, 0x1e: e, 0x26: h, 0x2e: l}
         self.registers[register_opcode[opcode]] = n
 
-    # 8-bit load instructions, reg to reg
+    # reg to reg
     def ld_r1_r2(self, opcode):  # 4 cycles
         register_opcode = {0x7f: (a, a), 0x78: (a, b), 0x79: (a, c), 0x7a: (a, d), 0x7b: (a, e), 0x7c: (a, h),
                            0x7d: (a, l), 0x40: (b, b), 0x41: (b, c), 0x42: (b, d), 0x43: (b, e), 0x44: (b, h),
@@ -37,19 +40,61 @@ class CPU:
 
         self.registers[register_opcode[opcode][0]] = self.registers[register_opcode[opcode][1]]
 
-    # 8-bit load instructions, reg to (hl)
-    def ld_hl_r(self, opcode):  # 8 cycles
+    # reg to (hl)
+    def ld_ahl_r(self, opcode):  # 8 cycles
         hl_loc = hex_compose(*self.registers[hl])
         register_opcode = {0x70: b, 0x71: c, 0x72: d, 0x73: e, 0x74: h, 0x75: l}
         self.memory[hl_loc] = self.registers[register_opcode[opcode]]
 
-    # 8-bit load instructions, (hl) to reg
-    def ld_r_hl(self, opcode):  # 8 cycles
+    # (hl) to reg
+    def ld_r_ahl(self, opcode):  # 8 cycles
         h1_loc = hex_compose(*self.registers[hl])
         register_opcode = {0x66: h, 0x5e: e, 0x56: d, 0x4e: c, 0x46: b, 0x7e: a, 0x6e: l}
         self.registers[register_opcode[opcode]] = self.memory[h1_loc]
 
-    # todo: implement instruction 0x36: ld (hl),n (12 cycles)
+    # n to (hl)
+    def ld_ahl_n(self, n):  # 0x36, 12 cycles
+        h1_loc = hex_compose(*self.registers[hl])
+        self.memory[h1_loc] = n
+
+    # a to r
+    def ld_r_a(self, opcode):  # 4 cycles
+        register_opcode = {0x47: b, 0x4f: c, 0x57: d, 0x5f: e, 0x67: h, 0x6f: l}
+        self.registers[register_opcode[opcode]] = self.registers[a]
+
+    # a to (rr)
+    def ld_arr_a(self, opcode):  # 8 cycles
+        register_opcode = {0x02: bc, 0x12: de, 0x77: hl}
+        rr_loc = hex_compose(*self.registers[register_opcode[opcode]])
+        self.memory[rr_loc] = self.registers[a]
+
+    # a to (rr)
+    def ld_ann_a(self, opcode):  # 0xea, 16 cycles
+        register_opcode = {0x02: bc, 0x12: de, 0x77: hl}
+        rr_loc = hex_compose(*self.registers[register_opcode[opcode]])
+        self.memory[rr_loc] = self.registers[a]
+
+    # (0xFF00 + C) to a
+    def ld_a_ac(self):  # 0xf2, 8 cycles
+        self.registers[a] = self.memory[0xFF00 + self.registers[c]]
+
+    # a to (0xFF00 + C)
+    def ld_ac_a(self):  # 0xe2, 8 cycles
+        self.memory[0xFF00 + self.registers[c]] = self.registers[a]
+
+    # todo - ldd (p. 71-74)
+
+    # (0xFF00 + n) to a
+    def ld_a_an(self, n):  # 0xf0, 12 cycles
+        self.registers[a] = self.memory[0xFF00 + n]
+
+    # a to (0xFF00 + C)
+    def ld_an_a(self, n):
+        self.memory[0xFF00 + n] = self.registers[a]
+
+    ##################################################################
+    # 16-bit load instructions
+
 
     def __str__(self):
         # todo - this is pretty terrible
