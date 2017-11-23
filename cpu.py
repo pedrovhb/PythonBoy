@@ -1,10 +1,10 @@
 from utility import hex_slice, hex_compose
 
 # Registers
-a, f, b, c, d, e, h, l = 0, 1, 2, 3, 4, 5, 6, 7
-sp, pc = slice(8, 9+1), slice(10, 11+1)
-af, bc, de, hl = slice(a, f+1), slice(b, c+1), slice(d, e+1), slice(h, l+1)
-
+a, f, b, c, d, e, h, l = 0, 1, 2, 3, 4, 5, 6, 7                                     # Registers
+sp, pc = slice(8, 9+1), slice(10, 11+1)                                             # Stack Pointer & Program Counter
+af, bc, de, hl = slice(a, f+1), slice(b, c+1), slice(d, e+1), slice(h, l+1)         # 16-bit registers from combinations
+f_z, f_n, f_h, f_c = 0b10000000, 0b01000000, 0b00100000, 0b00010000                 # Flags
 
 class CPU:
     def __init__(self, memory):
@@ -20,15 +20,36 @@ class CPU:
         self.registers[sp] = hex_slice(0xFFFE)
 
     ######################################################################################
+    # Meta
+
+    def validate_byte(self, *args):
+        for arg in args:
+            if not isinstance(arg, int):
+                raise TypeError
+            if not 0x00 <= arg <= 0xFF:
+                raise ValueError
+
+    ######################################################################################
+    # Flags
+
+    def set_flag(self, flag, value):  # Modify given flag
+        self.registers[f] |= flag
+        if not value:
+            self.registers[f] ^= flag
+
+    ######################################################################################
     # 8-bit load instructions
 
     # n to reg
     def ld_r_n(self, opcode, n):  # 8 cycles
+        self.validate_byte(opcode, n)
         register_opcode = {0x06: b, 0x0e: c, 0x16: d, 0x1e: e, 0x26: h, 0x2e: l}
+        assert opcode in register_opcode
         self.registers[register_opcode[opcode]] = n
 
     # reg to reg
     def ld_r1_r2(self, opcode):  # 4 cycles
+        self.validate_byte(opcode)
         register_opcode = {0x7f: (a, a), 0x78: (a, b), 0x79: (a, c), 0x7a: (a, d), 0x7b: (a, e), 0x7c: (a, h),
                            0x7d: (a, l), 0x40: (b, b), 0x41: (b, c), 0x42: (b, d), 0x43: (b, e), 0x44: (b, h),
                            0x45: (b, l), 0x48: (c, b), 0x49: (c, c), 0x4a: (c, d), 0x4b: (c, e), 0x4c: (c, h),
@@ -42,34 +63,40 @@ class CPU:
 
     # reg to (hl)
     def ld_ahl_r(self, opcode):  # 8 cycles
+        self.validate_byte(opcode)
         hl_loc = hex_compose(*self.registers[hl])
         register_opcode = {0x70: b, 0x71: c, 0x72: d, 0x73: e, 0x74: h, 0x75: l}
         self.memory[hl_loc] = self.registers[register_opcode[opcode]]
 
     # (hl) to reg
     def ld_r_ahl(self, opcode):  # 8 cycles
+        self.validate_byte(opcode)
         h1_loc = hex_compose(*self.registers[hl])
         register_opcode = {0x66: h, 0x5e: e, 0x56: d, 0x4e: c, 0x46: b, 0x7e: a, 0x6e: l}
         self.registers[register_opcode[opcode]] = self.memory[h1_loc]
 
     # n to (hl)
     def ld_ahl_n(self, n):  # 0x36, 12 cycles
+        self.validate_byte(n)
         h1_loc = hex_compose(*self.registers[hl])
         self.memory[h1_loc] = n
 
     # a to r
     def ld_r_a(self, opcode):  # 4 cycles
+        self.validate_byte(opcode)
         register_opcode = {0x47: b, 0x4f: c, 0x57: d, 0x5f: e, 0x67: h, 0x6f: l}
         self.registers[register_opcode[opcode]] = self.registers[a]
 
     # a to (rr)
     def ld_arr_a(self, opcode):  # 8 cycles
+        self.validate_byte(opcode)
         register_opcode = {0x02: bc, 0x12: de, 0x77: hl}
         rr_loc = hex_compose(*self.registers[register_opcode[opcode]])
         self.memory[rr_loc] = self.registers[a]
 
-    # a to (rr)
+    # a to (nn)
     def ld_ann_a(self, opcode):  # 0xea, 16 cycles
+        self.validate_byte(opcode)
         register_opcode = {0x02: bc, 0x12: de, 0x77: hl}
         rr_loc = hex_compose(*self.registers[register_opcode[opcode]])
         self.memory[rr_loc] = self.registers[a]
@@ -82,18 +109,34 @@ class CPU:
     def ld_ac_a(self):  # 0xe2, 8 cycles
         self.memory[0xFF00 + self.registers[c]] = self.registers[a]
 
-    # todo - ldd (p. 71-74)
+    # a to (0xFF00 + A)
+    def ld_an_a(self, n):  # 0xe0, 12 cycles
+        self.memory[0xFF00 + n] = self.registers[a]
 
-    # (0xFF00 + n) to a
+    # (0xFF00 + A) to a
     def ld_a_an(self, n):  # 0xf0, 12 cycles
         self.registers[a] = self.memory[0xFF00 + n]
 
-    # a to (0xFF00 + C)
-    def ld_an_a(self, n):
-        self.memory[0xFF00 + n] = self.registers[a]
+    # todo - ldd (p. 71-74)
 
     ##################################################################
     # 16-bit load instructions
+
+    # nn to rr
+    def ld_rr_nn(self, opcode, nn):  # 12 cycles
+        self.validate_byte(opcode, hex_slice(nn))
+        register_opcode = {0x01: bc, 0x11: de, 0x21: hl, 0x31: sp}
+        self.registers[register_opcode[opcode]] = hex_slice(nn)
+
+    # hl to sp
+    def ld_sp_hl(self):  # 0xf9, 8 cycles
+        self.registers[sp] = self.registers[hl]
+
+    # (sp + n) to hl
+    def ld_hl_spn(self, n):
+        self.registers[hl] = self.memory[self.registers[sp]+n]  # todo - check if this is right
+        # todo - change affected flags
+
 
 
     def __str__(self):
