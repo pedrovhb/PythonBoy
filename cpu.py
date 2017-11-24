@@ -37,6 +37,9 @@ class CPU:
         if not value:
             self.registers[f] ^= flag
 
+    def get_flag(self, flag):
+        return not self.registers[f] % flag
+
     ######################################################################################
     # 8-bit load instructions
 
@@ -147,10 +150,10 @@ class CPU:
     # Stack ops
 
     # push register pair into stack, sp -= 0x02
-    def push_nn(self, opcode):
+    '''def push_nn(self, opcode):
         self.validate_byte(opcode)
         register_opcode = {0xc5: bc, 0xd5: de, 0xe5: hl, 0xf5: af}
-        self.memory[slice(*self.registers[sp])] = self.registers[] # todo
+        self.memory[slice(self.registers[sp][0], self.registers[sp][1] - 0x02)] = *self.registers[] # todo'''
 
 
 

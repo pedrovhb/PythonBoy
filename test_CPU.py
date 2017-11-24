@@ -22,6 +22,13 @@ class TestCPU(TestCase):
         self.assertEqual(0x12, cpu.registers[b])
         #self.fail()
 
+    def test_set_flag(self):  # Modify given flag
+        c = CPU(memory=bytearray(0xFFFF*[0x00]))
+
+        c.set_flag(f_c, 1)
+        assert c.registers[f] % f_c == 0
+
+
 
     '''def test_ld_r1_r2(self):
         self.fail()
