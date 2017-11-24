@@ -133,9 +133,30 @@ class CPU:
         self.registers[sp] = self.registers[hl]
 
     # (sp + n) to hl
-    def ld_hl_spn(self, n):
-        self.registers[hl] = self.memory[self.registers[sp]+n]  # todo - check if this is right
-        # todo - change affected flags
+    '''def ld_hl_spn(self, n):  # 0xf8, 12 cycles
+        self.registers[hl] = self.registers[sp]+n
+        # todo - after alu
+        # todo - change affected flags'''
+
+    # sp to (nn)
+    def ld_ann_sp(self, opcode, nn):  # 0x08, 20 cycles
+        self.validate_byte(opcode, hex_slice(nn))
+        self.memory[nn] = self.registers[sp]
+
+    ##################################################################
+    # Stack ops
+
+    # push register pair into stack, sp -= 0x02
+    def push_nn(self, opcode):
+        self.validate_byte(opcode)
+        register_opcode = {0xc5: bc, 0xd5: de, 0xe5: hl, 0xf5: af}
+        self.memory[slice(*self.registers[sp])] = self.registers[] # todo
+
+
+
+
+
+
 
 
 
